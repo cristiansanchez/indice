@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 import type { LearningIndexResponse } from "@/types/learning";
 
 const SYSTEM_PROMPT_TEMPLATE = `Act as an expert curriculum designer and educational analyst.
@@ -64,33 +64,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
 
     // Debug: Log environment variable status (remove after debugging)
     console.log("Environment check:", {
       hasApiKey: !!apiKey,
       apiKeyLength: apiKey?.length || 0,
-      allEnvKeys: Object.keys(process.env).filter(key => key.includes("GEMINI") || key.includes("GOOGLE") || key.includes("API"))
+      allEnvKeys: Object.keys(process.env).filter(key => key.includes("OPENAI") || key.includes("API"))
     });
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: "Server configuration error: GEMINI_API_KEY not set" },
+        { error: "Server configuration error: OPENAI_API_KEY not set" },
         { status: 500 }
       );
     }
 
-    // Initialize Gemini
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // Initialize OpenAI
+    const openai = new OpenAI({ apiKey });
 
-    // Build prompt with user's text
-    const prompt = SYSTEM_PROMPT_TEMPLATE.replace("{{TEXT_INPUT}}", text);
+    // Build system prompt (without the text input placeholder)
+    const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{{TEXT_INPUT}}", "");
 
-    // Generate content
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const responseText = response.text();
+    // Generate content using OpenAI Chat Completions API
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: text }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7
+    });
+
+    const responseText = response.choices[0].message.content;
+    
+    if (!responseText) {
+      return NextResponse.json(
+        { error: "No response received from OpenAI API" },
+        { status: 500 }
+      );
+    }
 
     // Clean and parse JSON
     const cleanedJson = cleanJsonResponse(responseText);
@@ -123,18 +137,25 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error processing text:", error);
     
-    // Handle specific Gemini API errors
-    if (error.message?.includes("API key")) {
+    // Handle specific OpenAI API errors
+    if (error.status === 401 || error.message?.includes("Invalid API key") || error.message?.includes("invalid_api_key")) {
       return NextResponse.json(
-        { error: "Invalid API key. Please check your GEMINI_API_KEY configuration." },
+        { error: "Invalid API key. Please check your OPENAI_API_KEY configuration." },
         { status: 401 }
       );
     }
 
-    if (error.message?.includes("quota") || error.message?.includes("rate limit")) {
+    if (error.status === 429 || error.message?.includes("rate_limit_exceeded") || error.message?.includes("quota")) {
       return NextResponse.json(
-        { error: "API quota exceeded. Please try again later." },
+        { error: "API quota exceeded or rate limit reached. Please try again later." },
         { status: 429 }
+      );
+    }
+
+    if (error.status === 402 || error.message?.includes("insufficient_quota")) {
+      return NextResponse.json(
+        { error: "Insufficient quota. Please check your OpenAI account billing." },
+        { status: 402 }
       );
     }
 
