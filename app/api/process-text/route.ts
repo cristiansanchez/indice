@@ -54,6 +54,36 @@ function cleanJsonResponse(text: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Early debug logging - check API key availability immediately
+  const apiKey = process.env.OPENAI_API_KEY;
+  console.log("[API Route] Environment check:", {
+    hasApiKey: !!apiKey,
+    apiKeyLength: apiKey?.length || 0,
+    apiKeyPrefix: apiKey ? `${apiKey.substring(0, 7)}...` : "N/A",
+    nodeEnv: process.env.NODE_ENV,
+    allOpenAIVars: Object.keys(process.env).filter(key => 
+      key.toUpperCase().includes("OPENAI") || key.toUpperCase().includes("API")
+    ),
+    timestamp: new Date().toISOString()
+  });
+
+  // Fail early if API key is missing
+  if (!apiKey) {
+    console.error("[API Route] ERROR: OPENAI_API_KEY is not set in environment variables");
+    console.error("[API Route] Available env keys (filtered):", 
+      Object.keys(process.env)
+        .filter(key => key.includes("OPENAI") || key.includes("API") || key.includes("VERCEL"))
+        .sort()
+    );
+    return NextResponse.json(
+      { 
+        error: "Server configuration error: OPENAI_API_KEY not set",
+        details: "Please ensure OPENAI_API_KEY is configured in Vercel environment variables and redeploy."
+      },
+      { status: 500 }
+    );
+  }
+
   try {
     const { text } = await request.json();
 
@@ -64,24 +94,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-
-    // Debug: Log environment variable status (remove after debugging)
-    console.log("Environment check:", {
-      hasApiKey: !!apiKey,
-      apiKeyLength: apiKey?.length || 0,
-      allEnvKeys: Object.keys(process.env).filter(key => key.includes("OPENAI") || key.includes("API"))
-    });
-
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "Server configuration error: OPENAI_API_KEY not set" },
-        { status: 500 }
-      );
-    }
+    console.log("[API Route] Processing text request, length:", text.length);
 
     // Initialize OpenAI
+    console.log("[API Route] Initializing OpenAI client...");
     const openai = new OpenAI({ apiKey });
+    console.log("[API Route] OpenAI client initialized successfully");
 
     // Build system prompt (without the text input placeholder)
     const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{{TEXT_INPUT}}", "");
