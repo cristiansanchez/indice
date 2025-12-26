@@ -3,11 +3,10 @@
 import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Cpu, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function AppPage() {
-  const [url, setUrl] = useState("");
+  const [text, setText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -51,36 +50,37 @@ export default function AppPage() {
             Ignite discovery
           </h1>
           <p className="text-sm text-gray-500">
-            Paste an article URL or text to read to start creating knowledge
+            Paste text to read to start creating knowledge
           </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Input
-              type="text"
-              placeholder="Paste article URL here..."
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="flex-1"
+          <div className="space-y-4">
+            <textarea
+              placeholder="Paste your text here..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              className="w-full min-h-[300px] p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 resize-y text-sm placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
               required
               disabled={isLoading}
             />
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="px-8 w-full sm:w-auto"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Reading...
-                </>
-              ) : (
-                "Read"
-              )}
-            </Button>
+            <div className="flex justify-end">
+              <Button
+                type="submit"
+                disabled={isLoading || !text.trim()}
+                className="px-8"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Reading...
+                  </>
+                ) : (
+                  "Read"
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </div>
