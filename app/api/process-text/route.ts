@@ -66,6 +66,13 @@ export async function POST(request: NextRequest) {
 
     const apiKey = process.env.GEMINI_API_KEY;
 
+    // Debug: Log environment variable status (remove after debugging)
+    console.log("Environment check:", {
+      hasApiKey: !!apiKey,
+      apiKeyLength: apiKey?.length || 0,
+      allEnvKeys: Object.keys(process.env).filter(key => key.includes("GEMINI") || key.includes("GOOGLE") || key.includes("API"))
+    });
+
     if (!apiKey) {
       return NextResponse.json(
         { error: "Server configuration error: GEMINI_API_KEY not set" },
