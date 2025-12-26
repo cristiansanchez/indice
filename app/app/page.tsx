@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Cpu, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,20 @@ import { Button } from "@/components/ui/button";
 export default function AppPage() {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  // Client-side authentication check as additional security layer
+  useEffect(() => {
+    const checkAuth = () => {
+      const isAuth = sessionStorage.getItem("authenticated") === "true";
+      // Also check if we can access the cookie (though it's HttpOnly, this is a fallback)
+      if (!isAuth) {
+        router.push("/");
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

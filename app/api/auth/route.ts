@@ -13,7 +13,22 @@ export async function POST(request: NextRequest) {
     }
 
     if (password === correctPassword) {
-      return NextResponse.json({ success: true });
+      // Create response with success
+      const response = NextResponse.json({ success: true });
+
+      // Set secure authentication cookie from server
+      // HttpOnly prevents JavaScript access (XSS protection)
+      // Secure flag ensures cookie is only sent over HTTPS in production
+      // SameSite=Strict provides CSRF protection
+      response.cookies.set("authenticated", "true", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 60 * 60 * 24, // 24 hours
+        path: "/",
+      });
+
+      return response;
     } else {
       return NextResponse.json(
         { error: "Invalid password" },

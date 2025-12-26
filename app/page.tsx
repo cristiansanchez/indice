@@ -30,10 +30,15 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Store authentication state in both sessionStorage and cookie
+        // Cookie is now set by the server (HttpOnly, Secure)
+        // Store in sessionStorage as backup for client-side checks
         sessionStorage.setItem("authenticated", "true");
-        document.cookie = "authenticated=true; path=/; max-age=86400"; // 24 hours
-        router.push("/app");
+        
+        // Get redirect URL from query params or default to /app
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectTo = urlParams.get("redirect") || "/app";
+        
+        router.push(redirectTo);
       } else {
         setError(data.error || "Invalid password");
         setIsLoading(false);
