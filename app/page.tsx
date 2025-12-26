@@ -18,26 +18,30 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
 
-    const correctPassword = process.env.NEXT_PUBLIC_ACCESS_PASSWORD;
+    try {
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password }),
+      });
 
-    if (!correctPassword) {
-      setError("Server configuration error");
-      setIsLoading(false);
-      return;
-    }
+      const data = await response.json();
 
-    // Simulate validation delay
-    setTimeout(() => {
-      if (password === correctPassword) {
+      if (response.ok && data.success) {
         // Store authentication state in both sessionStorage and cookie
         sessionStorage.setItem("authenticated", "true");
         document.cookie = "authenticated=true; path=/; max-age=86400"; // 24 hours
         router.push("/app");
       } else {
-        setError("Invalid password");
+        setError(data.error || "Invalid password");
         setIsLoading(false);
       }
-    }, 300);
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
