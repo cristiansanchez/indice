@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
 
     // Generate content using OpenAI Chat Completions API
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4-turbo",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: text }
