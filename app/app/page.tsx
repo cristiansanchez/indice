@@ -131,7 +131,7 @@ export default function AppPage() {
             Ignite discovery
           </h1>
           <p className="text-sm text-gray-500">
-            Paste text to read to start creating knowledge
+            Paste text to start creating knowledge
           </p>
         </div>
 
