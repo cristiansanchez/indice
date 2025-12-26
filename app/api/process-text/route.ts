@@ -64,11 +64,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: "Server configuration error: GOOGLE_API_KEY not set" },
+        { error: "Server configuration error: GEMINI_API_KEY not set" },
         { status: 500 }
       );
     }
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     // Handle specific Gemini API errors
     if (error.message?.includes("API key")) {
       return NextResponse.json(
-        { error: "Invalid API key. Please check your GOOGLE_API_KEY configuration." },
+        { error: "Invalid API key. Please check your GEMINI_API_KEY configuration." },
         { status: 401 }
       );
     }
