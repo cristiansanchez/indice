@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { LearningIndexResponse, EnrichedModulesResponse } from "@/types/learning";
 
 const ENRICH_PROMPT_TEMPLATE = `Act as an expert academic researcher and librarian.
@@ -66,13 +66,13 @@ function cleanJsonResponse(text: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json(
       { 
-        error: "Server configuration error: OPENAI_API_KEY not set",
-        details: "Please ensure OPENAI_API_KEY is configured in Vercel environment variables and redeploy."
+        error: "Server configuration error: GEMINI_API_KEY not set",
+        details: "Please ensure GEMINI_API_KEY is configured in Vercel environment variables and redeploy."
       },
       { status: 500 }
     );
@@ -90,28 +90,28 @@ export async function POST(request: NextRequest) {
 
     console.log("[Enrich API] Processing enrichment request, modules count:", learningIndex.learning_modules.length);
 
-    // Initialize OpenAI
-    const openai = new OpenAI({ apiKey });
+    // Initialize Gemini
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.7
+      }
+    });
 
     // Build prompt with JSON input
     const jsonInput = JSON.stringify(learningIndex, null, 2);
-    const systemPrompt = ENRICH_PROMPT_TEMPLATE.replace("{{JSON_INDEX_INPUT}}", jsonInput);
+    const fullPrompt = ENRICH_PROMPT_TEMPLATE.replace("{{JSON_INDEX_INPUT}}", jsonInput);
 
-    // Generate content using OpenAI Chat Completions API
-    const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
-      messages: [
-        { role: "system", content: systemPrompt }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7
-    });
-
-    const responseText = response.choices[0].message.content;
+    // Generate content using Gemini API
+    const result = await model.generateContent(fullPrompt);
+    const response = await result.response;
+    const responseText = response.text();
     
     if (!responseText) {
       return NextResponse.json(
-        { error: "No response received from OpenAI API" },
+        { error: "No response received from Gemini API" },
         { status: 500 }
       );
     }
@@ -143,15 +143,15 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error enriching modules:", error);
     
-    // Handle specific OpenAI API errors
-    if (error.status === 401 || error.message?.includes("Invalid API key") || error.message?.includes("invalid_api_key")) {
+    // Handle specific Gemini API errors
+    if (error.status === 401 || error.message?.includes("Invalid API key") || error.message?.includes("invalid_api_key") || error.message?.includes("API_KEY_INVALID")) {
       return NextResponse.json(
-        { error: "Invalid API key. Please check your OPENAI_API_KEY configuration." },
+        { error: "Invalid API key. Please check your GEMINI_API_KEY configuration." },
         { status: 401 }
       );
     }
 
-    if (error.status === 429 || error.message?.includes("rate_limit_exceeded") || error.message?.includes("quota")) {
+    if (error.status === 429 || error.message?.includes("rate_limit_exceeded") || error.message?.includes("quota") || error.message?.includes("RESOURCE_EXHAUSTED")) {
       return NextResponse.json(
         { error: "API quota exceeded or rate limit reached. Please try again later." },
         { status: 429 }
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
 
     if (error.status === 402 || error.message?.includes("insufficient_quota")) {
       return NextResponse.json(
-        { error: "Insufficient quota. Please check your OpenAI account billing." },
+        { error: "Insufficient quota. Please check your Gemini account billing." },
         { status: 402 }
       );
     }

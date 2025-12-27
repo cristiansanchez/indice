@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { LearningIndexResponse } from "@/types/learning";
 
 const SYSTEM_PROMPT_TEMPLATE = `Act as an expert curriculum designer and educational analyst.
@@ -54,30 +54,30 @@ function cleanJsonResponse(text: string): string {
 
 export async function POST(request: NextRequest) {
   // Early debug logging - check API key availability immediately
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   console.log("[API Route] Environment check:", {
     hasApiKey: !!apiKey,
     apiKeyLength: apiKey?.length || 0,
     apiKeyPrefix: apiKey ? `${apiKey.substring(0, 7)}...` : "N/A",
     nodeEnv: process.env.NODE_ENV,
-    allOpenAIVars: Object.keys(process.env).filter(key => 
-      key.toUpperCase().includes("OPENAI") || key.toUpperCase().includes("API")
+    allGeminiVars: Object.keys(process.env).filter(key => 
+      key.toUpperCase().includes("GEMINI") || key.toUpperCase().includes("API")
     ),
     timestamp: new Date().toISOString()
   });
 
   // Fail early if API key is missing
   if (!apiKey) {
-    console.error("[API Route] ERROR: OPENAI_API_KEY is not set in environment variables");
+    console.error("[API Route] ERROR: GEMINI_API_KEY is not set in environment variables");
     console.error("[API Route] Available env keys (filtered):", 
       Object.keys(process.env)
-        .filter(key => key.includes("OPENAI") || key.includes("API") || key.includes("VERCEL"))
+        .filter(key => key.includes("GEMINI") || key.includes("API") || key.includes("VERCEL"))
         .sort()
     );
     return NextResponse.json(
       { 
-        error: "Server configuration error: OPENAI_API_KEY not set",
-        details: "Please ensure OPENAI_API_KEY is configured in Vercel environment variables and redeploy."
+        error: "Server configuration error: GEMINI_API_KEY not set",
+        details: "Please ensure GEMINI_API_KEY is configured in Vercel environment variables and redeploy."
       },
       { status: 500 }
     );
@@ -95,30 +95,30 @@ export async function POST(request: NextRequest) {
 
     console.log("[API Route] Processing text request, length:", text.length);
 
-    // Initialize OpenAI
-    console.log("[API Route] Initializing OpenAI client...");
-    const openai = new OpenAI({ apiKey });
-    console.log("[API Route] OpenAI client initialized successfully");
-
-    // Build system prompt (without the text input placeholder)
-    const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{{TEXT_INPUT}}", "");
-
-    // Generate content using OpenAI Chat Completions API
-    const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: text }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7
+    // Initialize Gemini
+    console.log("[API Route] Initializing Gemini client...");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.7
+      }
     });
+    console.log("[API Route] Gemini client initialized successfully");
 
-    const responseText = response.choices[0].message.content;
+    // Build full prompt combining system and user content
+    const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{{TEXT_INPUT}}", text);
+    const fullPrompt = systemPrompt;
+
+    // Generate content using Gemini API
+    const result = await model.generateContent(fullPrompt);
+    const response = await result.response;
+    const responseText = response.text();
     
     if (!responseText) {
       return NextResponse.json(
-        { error: "No response received from OpenAI API" },
+        { error: "No response received from Gemini API" },
         { status: 500 }
       );
     }
@@ -154,15 +154,15 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error processing text:", error);
     
-    // Handle specific OpenAI API errors
-    if (error.status === 401 || error.message?.includes("Invalid API key") || error.message?.includes("invalid_api_key")) {
+    // Handle specific Gemini API errors
+    if (error.status === 401 || error.message?.includes("Invalid API key") || error.message?.includes("invalid_api_key") || error.message?.includes("API_KEY_INVALID")) {
       return NextResponse.json(
-        { error: "Invalid API key. Please check your OPENAI_API_KEY configuration." },
+        { error: "Invalid API key. Please check your GEMINI_API_KEY configuration." },
         { status: 401 }
       );
     }
 
-    if (error.status === 429 || error.message?.includes("rate_limit_exceeded") || error.message?.includes("quota")) {
+    if (error.status === 429 || error.message?.includes("rate_limit_exceeded") || error.message?.includes("quota") || error.message?.includes("RESOURCE_EXHAUSTED")) {
       return NextResponse.json(
         { error: "API quota exceeded or rate limit reached. Please try again later." },
         { status: 429 }
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
 
     if (error.status === 402 || error.message?.includes("insufficient_quota")) {
       return NextResponse.json(
-        { error: "Insufficient quota. Please check your OpenAI account billing." },
+        { error: "Insufficient quota. Please check your Gemini account billing." },
         { status: 402 }
       );
     }
