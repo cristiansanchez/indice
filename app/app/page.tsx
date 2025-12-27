@@ -6,7 +6,7 @@ import { Cpu, Loader2, Copy, Check, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { LearningIndexResponse, LearningModule } from "@/types/learning";
+import type { LearningIndexResponse, LearningModule, EnrichedModule } from "@/types/learning";
 
 export default function AppPage() {
   const [text, setText] = useState("");
@@ -15,6 +15,7 @@ export default function AppPage() {
   const [error, setError] = useState("");
   const [copiedIndex, setCopiedIndex] = useState<number | "all" | null>(null);
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
+  const [isEnriching, setIsEnriching] = useState(false);
   const menuRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const router = useRouter();
 
@@ -63,6 +64,47 @@ export default function AppPage() {
     // Placeholder for future functionality
     console.log(`Action: ${action} for module ${moduleOrder}`);
     handleMenuClose();
+  };
+
+  const handleSendToAI = async () => {
+    if (!result) return;
+    
+    setIsEnriching(true);
+    try {
+      const response = await fetch("/api/enrich-modules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(result),
+      });
+      
+      const enrichedData = await response.json();
+      
+      if (response.ok) {
+        // Actualizar los módulos con los recursos
+        const updatedModules = result.learning_modules.map((module) => {
+          const enriched = enrichedData.enriched_modules.find(
+            (e: EnrichedModule) => e.module_title === module.title
+          );
+          return {
+            ...module,
+            resources: enriched?.resources || [],
+          };
+        });
+        
+        setResult({
+          ...result,
+          learning_modules: updatedModules,
+        });
+        
+        toast.success("Resources added successfully!");
+      } else {
+        toast.error(enrichedData.error || "Failed to enrich modules");
+      }
+    } catch (err) {
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsEnriching(false);
+    }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -265,6 +307,26 @@ export default function AppPage() {
                               {module.difficulty}
                             </span>
                           </div>
+                          {module.resources && module.resources.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                              <h5 className="text-xs font-semibold text-gray-700 mb-2">Resources:</h5>
+                              <div className="space-y-2">
+                                {module.resources.map((resource, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={resource.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block p-2 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition-colors"
+                                  >
+                                    <div className="font-medium text-sm text-gray-900">{resource.title}</div>
+                                    <div className="text-xs text-gray-600 mt-1">{resource.description}</div>
+                                    <div className="text-xs text-blue-600 mt-1 truncate">{resource.url}</div>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {/* Menu button */}
@@ -340,8 +402,19 @@ export default function AppPage() {
 
             {/* Send to AI Button */}
             <div className="flex justify-end mt-6">
-              <Button className="px-8">
-                Send to AI
+              <Button
+                onClick={handleSendToAI}
+                disabled={isEnriching || !result}
+                className="px-8"
+              >
+                {isEnriching ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send to AI"
+                )}
               </Button>
             </div>
           </div>
