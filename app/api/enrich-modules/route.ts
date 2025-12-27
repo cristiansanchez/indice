@@ -13,10 +13,11 @@ Your task is to curate **2 high-quality external resources** (articles, research
 2.  **Selection Criteria:**
     *   Select resources that are highly relevant, credible, and educational.
     *   Prioritize open-access papers (arXiv), reputable tech blogs (like Mozilla MDN, Vercel Blog, Medium curated), or recognized academic journals.
+    *   **IMPORTANT: All URLs must point to real, existing resources. Do not invent or create fictional URLs. Only provide URLs to actual published content that you can verify exists.**
 3.  **Formatting:**
     *   **Title:** The exact title of the article or paper.
     *   **Description:** A concise, one-line summary of why this resource is valuable for this specific topic.
-    *   **URL:** A direct link to the resource.
+    *   **URL:** A direct link to the resource. **CRITICAL: URLs must be real, existing, and verifiable resources. Do not invent, create, or generate fictional URLs. Only provide URLs to actual published content.**
 4.  **Output:** Return the result STRICTLY as a valid JSON object. Do not use Markdown formatting (no \`\`\`json).
 
 **JSON Output Schema:**
