@@ -67,19 +67,37 @@ function cleanJsonResponse(text: string): string {
 }
 
 function extractUrlsFromGrounding(groundingMetadata: any): Map<string, { uri: string, title: string }> {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:69',message:'extractUrlsFromGrounding entry',data:{hasGroundingMetadata:!!groundingMetadata,hasGroundingChunks:!!groundingMetadata?.groundingChunks,chunksType:typeof groundingMetadata?.groundingChunks,isArray:Array.isArray(groundingMetadata?.groundingChunks),chunksLength:groundingMetadata?.groundingChunks?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
+  
   const urlMap = new Map<string, { uri: string, title: string }>();
   
   if (groundingMetadata?.groundingChunks) {
-    groundingMetadata.groundingChunks.forEach((chunk: any) => {
-      if (chunk.web?.uri && chunk.web?.title) {
-        // Usar title como clave para hacer match con los recursos
-        urlMap.set(chunk.web.title.toLowerCase(), {
-          uri: chunk.web.uri,
-          title: chunk.web.title
-        });
-      }
-    });
+    try {
+      groundingMetadata.groundingChunks.forEach((chunk: any, index: number) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:78',message:'Processing chunk',data:{chunkIndex:index,hasChunk:!!chunk,chunkKeys:chunk ? Object.keys(chunk) : [],hasWeb:!!chunk?.web,webKeys:chunk?.web ? Object.keys(chunk.web) : [],hasUri:!!chunk?.web?.uri,hasTitle:!!chunk?.web?.title},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+        if (chunk.web?.uri && chunk.web?.title) {
+          // Usar title como clave para hacer match con los recursos
+          urlMap.set(chunk.web.title.toLowerCase(), {
+            uri: chunk.web.uri,
+            title: chunk.web.title
+          });
+        }
+      });
+    } catch (forEachError: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:88',message:'forEach error in extractUrlsFromGrounding',data:{errorMessage:forEachError?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      throw forEachError;
+    }
   }
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:94',message:'extractUrlsFromGrounding exit',data:{urlMapSize:urlMap.size},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
   
   return urlMap;
 }
@@ -109,31 +127,87 @@ export async function POST(request: NextRequest) {
 
     console.log("[Enrich API] Processing enrichment request, modules count:", learningIndex.learning_modules.length);
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:110',message:'Before model initialization',data:{modulesCount:learningIndex.learning_modules.length,hasApiKey:!!apiKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+
     // Initialize Gemini
     const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:115',message:'Before getGenerativeModel with tools',data:{model:'gemini-2.5-flash',hasTools:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
+    // Initialize model - temporarily without tools to test if tools are causing the error
+    // If this works, we'll add tools back with proper error handling
+    console.log("[Enrich API] Initializing model WITHOUT tools (testing phase)");
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash",
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0.7
-      },
-      tools: [
-        {
-          googleSearch: {}
-        } as any
-      ]
+      }
+      // tools: [
+      //   {
+      //     google_search: {}
+      //   } as any
+      // ]
     });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:125',message:'Model initialized successfully',data:{modelType:typeof model},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
 
     // Build prompt with JSON input
     const jsonInput = JSON.stringify(learningIndex, null, 2);
     const fullPrompt = ENRICH_PROMPT_TEMPLATE.replace("{{JSON_INDEX_INPUT}}", jsonInput);
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:132',message:'Before generateContent call',data:{promptLength:fullPrompt.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    console.log("[Enrich API] About to call generateContent with tools:", {
+      model: "gemini-2.5-flash",
+      hasTools: true,
+      promptLength: fullPrompt.length
+    });
+
     // Generate content using Gemini API
-    const result = await model.generateContent(fullPrompt);
+    let result: any;
+    try {
+      result = await model.generateContent(fullPrompt);
+      console.log("[Enrich API] generateContent succeeded");
+    } catch (genError: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:137',message:'generateContent error',data:{errorMessage:genError?.message,errorStatus:genError?.status,errorStack:genError?.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      console.error("[Enrich API] generateContent error:", {
+        message: genError?.message,
+        status: genError?.status,
+        name: genError?.name,
+        stack: genError?.stack,
+        cause: genError?.cause,
+        response: genError?.response
+      });
+      throw genError;
+    }
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:143',message:'After generateContent, before accessing response',data:{hasResult:!!result,resultKeys:result ? Object.keys(result) : []},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
     const response = await result.response;
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:148',message:'After getting response, before accessing groundingMetadata',data:{hasResponse:!!response,responseKeys:response ? Object.keys(response) : [],hasResponseGrounding:!!(response as any)?.groundingMetadata,hasResultGrounding:!!(result as any)?.groundingMetadata},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     
     // Acceder a groundingMetadata si está disponible (puede estar en result o response)
     const groundingMetadata = (response as any).groundingMetadata || (result as any).groundingMetadata;
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:153',message:'After accessing groundingMetadata',data:{hasGroundingMetadata:!!groundingMetadata,groundingKeys:groundingMetadata ? Object.keys(groundingMetadata) : [],hasGroundingChunks:!!groundingMetadata?.groundingChunks,chunksLength:groundingMetadata?.groundingChunks?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
     const responseText = response.text();
     
     if (!responseText) {
@@ -154,10 +228,20 @@ export async function POST(request: NextRequest) {
     // Clean and parse JSON
     const cleanedJson = cleanJsonResponse(responseText);
     
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:168',message:'Before JSON parsing',data:{cleanedJsonLength:cleanedJson.length,cleanedJsonStart:cleanedJson.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    
     let enrichedModules: EnrichedModulesResponse;
     try {
       enrichedModules = JSON.parse(cleanedJson);
-    } catch (parseError) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:174',message:'JSON parsed successfully',data:{modulesCount:enrichedModules?.enriched_modules?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+    } catch (parseError: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:177',message:'JSON parse error',data:{errorMessage:parseError?.message,cleanedJsonStart:cleanedJson.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       console.error("JSON Parse Error:", parseError);
       console.error("Response text:", responseText);
       return NextResponse.json(
@@ -176,7 +260,22 @@ export async function POST(request: NextRequest) {
 
     // Extraer URLs verificadas del groundingMetadata y combinarlas con el JSON
     if (groundingMetadata) {
-      const verifiedUrls = extractUrlsFromGrounding(groundingMetadata);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:190',message:'Before extractUrlsFromGrounding',data:{hasGroundingMetadata:true,groundingChunksType:typeof groundingMetadata.groundingChunks,isArray:Array.isArray(groundingMetadata.groundingChunks)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      
+      let verifiedUrls: Map<string, { uri: string, title: string }>;
+      try {
+        verifiedUrls = extractUrlsFromGrounding(groundingMetadata);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:195',message:'After extractUrlsFromGrounding',data:{verifiedUrlsCount:verifiedUrls.size},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+      } catch (extractError: any) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:198',message:'extractUrlsFromGrounding error',data:{errorMessage:extractError?.message,groundingMetadataKeys:groundingMetadata ? Object.keys(groundingMetadata) : []},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+        throw extractError;
+      }
       
       if (verifiedUrls.size > 0) {
         console.log("[Enrich API] Found", verifiedUrls.size, "verified URLs from grounding metadata");
@@ -197,7 +296,18 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(enrichedModules);
   } catch (error: any) {
-    console.error("Error enriching modules:", error);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/53d5bfd5-5b12-4767-834f-705673023f5f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'enrich-modules/route.ts:220',message:'Catch block - main error',data:{errorMessage:error?.message,errorStatus:error?.status,errorName:error?.name,errorStack:error?.stack?.substring(0,500),errorStringified:JSON.stringify(error).substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'})}).catch(()=>{});
+    // #endregion
+    console.error("[Enrich API] Error enriching modules:", {
+      message: error?.message,
+      status: error?.status,
+      name: error?.name,
+      stack: error?.stack,
+      cause: error?.cause,
+      response: error?.response,
+      fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+    });
     
     // Handle specific Gemini API errors
     if (error.status === 401 || error.message?.includes("Invalid API key") || error.message?.includes("invalid_api_key") || error.message?.includes("API_KEY_INVALID")) {
