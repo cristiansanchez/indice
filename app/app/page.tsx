@@ -337,6 +337,13 @@ export default function AppPage() {
                   </Card>
                 ))}
             </div>
+
+            {/* Send to AI Button */}
+            <div className="flex justify-end mt-6">
+              <Button className="px-8">
+                Send to AI
+              </Button>
+            </div>
           </div>
         )}
       </div>
