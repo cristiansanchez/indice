@@ -17,7 +17,7 @@ Your task is to curate **2 high-quality external resources** (articles, research
 3.  **Formatting:**
     *   **Title:** The exact title of the article or paper.
     *   **Description:** A concise, one-line summary of why this resource is valuable for this specific topic.
-    *   **URL:** A direct link to the resource. **CRITICAL: URLs must be real, existing, and verifiable resources. Do not invent, create, or generate fictional URLs. Only provide URLs to actual published content.**
+    *   **URL:** A direct link to the resource. **CRITICAL: URLs must be real, existing, and verifiable resources. Do not invent, create, or generate fictional URLs. Only provide URLs to actual published content. Use Google Search to find real, existing resources.**
 4.  **Output:** Return the result STRICTLY as a valid JSON object. Do not use Markdown formatting (no \`\`\`json).
 
 **JSON Output Schema:**
@@ -66,6 +66,24 @@ function cleanJsonResponse(text: string): string {
   return cleaned.trim();
 }
 
+function extractUrlsFromGrounding(groundingMetadata: any): Map<string, { uri: string, title: string }> {
+  const urlMap = new Map<string, { uri: string, title: string }>();
+  
+  if (groundingMetadata?.groundingChunks) {
+    groundingMetadata.groundingChunks.forEach((chunk: any) => {
+      if (chunk.web?.uri && chunk.web?.title) {
+        // Usar title como clave para hacer match con los recursos
+        urlMap.set(chunk.web.title.toLowerCase(), {
+          uri: chunk.web.uri,
+          title: chunk.web.title
+        });
+      }
+    });
+  }
+  
+  return urlMap;
+}
+
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -98,7 +116,12 @@ export async function POST(request: NextRequest) {
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0.7
-      }
+      },
+      tools: [
+        {
+          googleSearch: {}
+        } as any
+      ]
     });
 
     // Build prompt with JSON input
@@ -108,6 +131,9 @@ export async function POST(request: NextRequest) {
     // Generate content using Gemini API
     const result = await model.generateContent(fullPrompt);
     const response = await result.response;
+    
+    // Acceder a groundingMetadata si está disponible (puede estar en result o response)
+    const groundingMetadata = (response as any).groundingMetadata || (result as any).groundingMetadata;
     const responseText = response.text();
     
     if (!responseText) {
@@ -115,6 +141,14 @@ export async function POST(request: NextRequest) {
         { error: "No response received from Gemini API" },
         { status: 500 }
       );
+    }
+
+    // Logging para debugging
+    if (groundingMetadata) {
+      console.log("[Enrich API] Grounding metadata available:", {
+        chunksCount: groundingMetadata.groundingChunks?.length || 0,
+        searchQueries: groundingMetadata.webSearchQueries || []
+      });
     }
 
     // Clean and parse JSON
@@ -138,6 +172,27 @@ export async function POST(request: NextRequest) {
         { error: "Invalid response structure from LLM" },
         { status: 500 }
       );
+    }
+
+    // Extraer URLs verificadas del groundingMetadata y combinarlas con el JSON
+    if (groundingMetadata) {
+      const verifiedUrls = extractUrlsFromGrounding(groundingMetadata);
+      
+      if (verifiedUrls.size > 0) {
+        console.log("[Enrich API] Found", verifiedUrls.size, "verified URLs from grounding metadata");
+        
+        // Reemplazar URLs en el JSON con URLs verificadas cuando sea posible
+        enrichedModules.enriched_modules.forEach((module) => {
+          module.resources.forEach((resource) => {
+            // Intentar hacer match por título
+            const verified = verifiedUrls.get(resource.title.toLowerCase());
+            if (verified) {
+              console.log("[Enrich API] Replacing URL for:", resource.title, "->", verified.uri);
+              resource.url = verified.uri;
+            }
+          });
+        });
+      }
     }
 
     return NextResponse.json(enrichedModules);
