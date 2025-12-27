@@ -125,8 +125,7 @@ export default function AppPage() {
     data.learning_modules.forEach((module, index) => {
       content += `${index + 1}. ${module.title}\n`;
       content += `   ${module.description}\n`;
-      content += `   Difficulty: ${module.difficulty}\n`;
-      content += `   Source: ${module.source_type}\n\n`;
+      content += `   Difficulty: ${module.difficulty}\n\n`;
     });
 
     return content;
@@ -145,11 +144,6 @@ export default function AppPage() {
     }
   };
 
-  const getSourceTypeColor = (sourceType: string) => {
-    return sourceType === "Derived from Text"
-      ? "bg-blue-100 text-blue-800 border-blue-200"
-      : "bg-purple-100 text-purple-800 border-purple-200";
-  };
 
   return (
     <div className="min-h-screen bg-white p-6">
@@ -269,13 +263,6 @@ export default function AppPage() {
                               )}`}
                             >
                               {module.difficulty}
-                            </span>
-                            <span
-                              className={`px-2 py-1 text-xs font-medium rounded border ${getSourceTypeColor(
-                                module.source_type
-                              )}`}
-                            >
-                              {module.source_type}
                             </span>
                           </div>
                         </div>

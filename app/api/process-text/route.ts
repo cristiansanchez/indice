@@ -23,7 +23,6 @@ I will provide you with a text input. Your goal is to identify the core subject 
 "order": number,
 "title": "Title of the concept/module",
 "description": "A concise explanation of what will be learned (max 25 words)",
-"source_type": "Derived from Text" OR "Recommended Expansion",
 "difficulty": "Beginner" OR "Intermediate" OR "Advanced"
 }
 ]
