@@ -5,6 +5,16 @@ export async function POST(request: NextRequest) {
     const { password } = await request.json();
     const correctPassword = process.env.ACCESS_PASSWORD;
 
+    // DEBUG: Log temporal para verificar la variable de entorno
+    console.log("=== AUTH DEBUG ===");
+    console.log("ACCESS_PASSWORD exists:", !!correctPassword);
+    console.log("ACCESS_PASSWORD length:", correctPassword?.length || 0);
+    console.log("ACCESS_PASSWORD first 3 chars:", correctPassword?.substring(0, 3) || "N/A");
+    console.log("ACCESS_PASSWORD last 3 chars:", correctPassword?.substring(correctPassword?.length - 3) || "N/A");
+    console.log("Password received length:", password?.length || 0);
+    console.log("Passwords match:", password === correctPassword);
+    console.log("==================");
+
     if (!correctPassword) {
       return NextResponse.json(
         { error: "Server configuration error" },
