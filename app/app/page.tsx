@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
+import { useState, FormEvent, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Cpu, Loader2, Copy, Check } from "lucide-react";
+import { Cpu, Loader2, Copy, Check, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +14,8 @@ export default function AppPage() {
   const [result, setResult] = useState<LearningIndexResponse | null>(null);
   const [error, setError] = useState("");
   const [copiedIndex, setCopiedIndex] = useState<number | "all" | null>(null);
+  const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
+  const menuRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const router = useRouter();
 
   // Client-side authentication check as additional security layer
@@ -28,6 +30,40 @@ export default function AppPage() {
 
     checkAuth();
   }, [router]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuIndex !== null) {
+        const menuElement = menuRefs.current.get(openMenuIndex);
+        if (menuElement && !menuElement.contains(event.target as Node)) {
+          setOpenMenuIndex(null);
+        }
+      }
+    };
+
+    if (openMenuIndex !== null) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openMenuIndex]);
+
+  const handleMenuToggle = (moduleOrder: number) => {
+    setOpenMenuIndex(openMenuIndex === moduleOrder ? null : moduleOrder);
+  };
+
+  const handleMenuClose = () => {
+    setOpenMenuIndex(null);
+  };
+
+  const handleMenuAction = (action: string, moduleOrder: number) => {
+    // Placeholder for future functionality
+    console.log(`Action: ${action} for module ${moduleOrder}`);
+    handleMenuClose();
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -243,18 +279,72 @@ export default function AppPage() {
                             </span>
                           </div>
                         </div>
-                        <Button
-                          onClick={() => copyModule(module)}
-                          variant="ghost"
-                          size="sm"
-                          className="shrink-0"
-                        >
-                          {copiedIndex === module.order ? (
-                            <Check className="w-4 h-4" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {/* Menu button */}
+                          <div
+                            className="relative"
+                            ref={(el) => {
+                              if (el) {
+                                menuRefs.current.set(module.order, el);
+                              } else {
+                                menuRefs.current.delete(module.order);
+                              }
+                            }}
+                          >
+                            <Button
+                              onClick={() => handleMenuToggle(module.order)}
+                              variant="ghost"
+                              size="sm"
+                              className="h-9 w-9 p-0"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                            {/* Dropdown menu */}
+                            {openMenuIndex === module.order && (
+                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                <div className="py-1">
+                                  <button
+                                    onClick={() => handleMenuAction("Delete", module.order)}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                  >
+                                    Delete
+                                  </button>
+                                  <button
+                                    onClick={() => handleMenuAction("Rewrite", module.order)}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                  >
+                                    Rewrite
+                                  </button>
+                                  <button
+                                    onClick={() => handleMenuAction("Add subpoints", module.order)}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                  >
+                                    Add subpoints
+                                  </button>
+                                  <button
+                                    onClick={() => handleMenuAction("Zoom in", module.order)}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                  >
+                                    Zoom in
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          {/* Copy button */}
+                          <Button
+                            onClick={() => copyModule(module)}
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 w-9 p-0"
+                          >
+                            {copiedIndex === module.order ? (
+                              <Check className="w-4 h-4" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
