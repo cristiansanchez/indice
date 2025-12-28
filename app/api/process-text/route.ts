@@ -9,10 +9,11 @@ I will provide you with a text input. Your goal is to identify the core subject 
 **Instructions:**
 1. **Analyze the Topic:** Identify the main theme of the input text.
 2. **Structure the Knowledge:** Create a logical, step-by-step learning path, based on the topic suggested by the user.
-3. **Bridge the Gaps:**
+3. **Module Count:** Generate a maximum of 9 learning modules. Do not exceed this limit.
+4. **Bridge the Gaps:**
     - If a concept is explicitly mentioned in the text, include it.
     - If a concept is crucial to understanding the topic but is missing from the text, you MUST add it to the index to ensure the learning path is complete.
-4. **Output Format:** Return the response STRICTLY as a valid JSON object. Do not include markdown formatting (like \`\`\`json) or conversational text.
+5. **Output Format:** Return the response STRICTLY as a valid JSON object. Do not include markdown formatting (like \`\`\`json) or conversational text.
 
 **JSON Schema:**
 {
