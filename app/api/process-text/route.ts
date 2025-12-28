@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { text } = await request.json();
+    const { text, model } = await request.json();
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return NextResponse.json(
@@ -94,13 +94,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("[API Route] Processing text request, length:", text.length);
+    // Validate model if provided
+    const allowedModels = ["gemini-2.5-flash"];
+    const modelName = model || "gemini-2.5-flash";
+    if (model && !allowedModels.includes(model)) {
+      return NextResponse.json(
+        { error: "Invalid model specified" },
+        { status: 400 }
+      );
+    }
+
+    console.log("[API Route] Processing text request, length:", text.length, "model:", modelName);
 
     // Initialize Gemini
     console.log("[API Route] Initializing Gemini client...");
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+    const geminiModel = genAI.getGenerativeModel({ 
+      model: modelName,
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0.7
@@ -113,7 +123,7 @@ export async function POST(request: NextRequest) {
     const fullPrompt = systemPrompt;
 
     // Generate content using Gemini API
-    const result = await model.generateContent(fullPrompt);
+    const result = await geminiModel.generateContent(fullPrompt);
     const response = await result.response;
     const responseText = response.text();
     

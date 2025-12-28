@@ -16,8 +16,13 @@ export default function AppPage() {
   const [copiedIndex, setCopiedIndex] = useState<number | "all" | null>(null);
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const [isEnriching, setIsEnriching] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-flash");
   const menuRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const router = useRouter();
+
+  const availableModels = [
+    { value: "gemini-2.5-flash", label: "Gemini Flash 2.5", cost: 0.15 }
+  ];
 
   // Client-side authentication check as additional security layer
   useEffect(() => {
@@ -119,7 +124,7 @@ export default function AppPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, model: selectedModel }),
       });
 
       const data = await response.json();
@@ -188,7 +193,24 @@ export default function AppPage() {
 
 
   return (
-    <div className="min-h-screen bg-white p-4 sm:p-6">
+    <div className="min-h-screen bg-white p-4 sm:p-6 relative">
+      {/* Model Selector */}
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
+        <label htmlFor="model-select" className="sr-only">Select LLM Model</label>
+        <select
+          id="model-select"
+          value={selectedModel}
+          onChange={(e) => setSelectedModel(e.target.value)}
+          disabled={isLoading}
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {availableModels.map((model) => (
+            <option key={model.value} value={model.value}>
+              {model.label} - {model.cost.toFixed(2)}€
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Icon */}
         <div className="flex justify-center">
