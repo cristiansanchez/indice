@@ -16,6 +16,7 @@ export default function AppPage() {
   const [copiedIndex, setCopiedIndex] = useState<number | "all" | null>(null);
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const [isEnriching, setIsEnriching] = useState(false);
+  const [enrichingModule, setEnrichingModule] = useState<number | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-flash");
   const menuRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const router = useRouter();
@@ -111,6 +112,57 @@ export default function AppPage() {
       toast.error("An error occurred. Please try again.");
     } finally {
       setIsEnriching(false);
+    }
+  };
+
+  const handleEnrichSingleModule = async (module: LearningModule) => {
+    if (!result) return;
+    
+    setEnrichingModule(module.order);
+    try {
+      // Create a minimal LearningIndexResponse with only this module
+      const singleModuleIndex: LearningIndexResponse = {
+        main_topic: result.main_topic,
+        topic_summary: result.topic_summary,
+        learning_modules: [module]
+      };
+      
+      const response = await fetch("/api/enrich-modules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(singleModuleIndex),
+      });
+      
+      const enrichedData = await response.json();
+      
+      if (response.ok) {
+        // Update only this specific module with resources
+        const updatedModules = result.learning_modules.map((m) => {
+          if (m.order === module.order) {
+            const enriched = enrichedData.enriched_modules.find(
+              (e: EnrichedModule) => e.module_title === module.title
+            );
+            return {
+              ...m,
+              resources: enriched?.resources || [],
+            };
+          }
+          return m;
+        });
+        
+        setResult({
+          ...result,
+          learning_modules: updatedModules,
+        });
+        
+        toast.success(`Resources added for "${module.title}"!`);
+      } else {
+        toast.error(enrichedData.error || "Failed to enrich module");
+      }
+    } catch (err) {
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setEnrichingModule(null);
     }
   };
 
@@ -426,6 +478,26 @@ export default function AppPage() {
                               <Copy className="w-4 h-4" />
                             )}
                           </Button>
+                          {/* Enrich button */}
+                          <Button
+                            onClick={() => handleEnrichSingleModule(module)}
+                            disabled={enrichingModule === module.order || isEnriching || !result}
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 px-2 text-xs"
+                            title="Enrich this module with resources"
+                          >
+                            {enrichingModule === module.order ? (
+                              <>
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                <span className="hidden sm:inline">Loading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-xs">+ Resources</span>
+                              </>
+                            )}
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -437,7 +509,7 @@ export default function AppPage() {
             <div className="flex justify-end mt-6">
               <Button
                 onClick={handleSendToAI}
-                disabled={isEnriching || !result}
+                disabled={isEnriching || !result || enrichingModule !== null}
                 className="px-8"
               >
                 {isEnriching ? (
