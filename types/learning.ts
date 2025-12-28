@@ -2,8 +2,9 @@ export type Difficulty = "Beginner" | "Intermediate" | "Advanced";
 
 export interface Resource {
   title: string;
-  description: string;
+  content: string;
   url: string;
+  score: number;
 }
 
 export interface LearningModule {

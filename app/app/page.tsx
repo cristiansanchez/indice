@@ -319,9 +319,18 @@ export default function AppPage() {
                                     rel="noopener noreferrer"
                                     className="block p-2 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition-colors"
                                   >
-                                    <div className="font-medium text-sm text-gray-900">{resource.title}</div>
-                                    <div className="text-xs text-gray-600 mt-1">{resource.description}</div>
-                                    <div className="text-xs text-blue-600 mt-1 truncate">{resource.url}</div>
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex-1">
+                                        <div className="font-medium text-sm text-gray-900">{resource.title}</div>
+                                        <div className="text-xs text-gray-600 mt-1">{resource.content}</div>
+                                        <div className="text-xs text-blue-600 mt-1 truncate">{resource.url}</div>
+                                      </div>
+                                      <div className="shrink-0">
+                                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 border border-blue-200">
+                                          {(resource.score * 100).toFixed(0)}%
+                                        </span>
+                                      </div>
+                                    </div>
                                   </a>
                                 ))}
                               </div>
