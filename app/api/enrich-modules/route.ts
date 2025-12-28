@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({
             api_key: apiKey,
             query: query,
-            max_results: 2,
+            max_results: 4,
             include_raw_content: false
           })
         });
