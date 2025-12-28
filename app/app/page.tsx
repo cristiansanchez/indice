@@ -188,7 +188,7 @@ export default function AppPage() {
 
 
   return (
-    <div className="min-h-screen bg-white p-6">
+    <div className="min-h-screen bg-white p-4 sm:p-6">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Icon */}
         <div className="flex justify-center">
@@ -248,7 +248,7 @@ export default function AppPage() {
         {result && (
           <div className="space-y-6 mt-8">
             {/* Header with Copy All Button */}
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
                   {result.main_topic}
@@ -283,8 +283,8 @@ export default function AppPage() {
               {result.learning_modules
                 .sort((a, b) => a.order - b.order)
                 .map((module) => (
-                  <Card key={module.order} className="border-gray-200">
-                    <CardContent className="p-6">
+                    <Card key={module.order} className="border-gray-200">
+                    <CardContent className="p-4 sm:p-6">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 space-y-3">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -317,15 +317,15 @@ export default function AppPage() {
                                     href={resource.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="block p-2 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition-colors"
+                                    className="block p-2 sm:p-3 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition-colors"
                                   >
-                                    <div className="flex items-start justify-between gap-2">
+                                    <div className="flex flex-col sm:flex-row items-start justify-between gap-2">
                                       <div className="flex-1">
-                                        <div className="font-medium text-sm text-gray-900">{resource.title}</div>
-                                        <div className="text-xs text-gray-600 mt-1">{resource.content}</div>
-                                        <div className="text-xs text-blue-600 mt-1 truncate">{resource.url}</div>
+                                        <div className="font-medium text-sm text-gray-900 break-words">{resource.title}</div>
+                                        <div className="text-xs text-gray-600 mt-1 break-words">{resource.content}</div>
+                                        <div className="text-xs text-blue-600 mt-1 break-words break-all overflow-wrap-anywhere">{resource.url}</div>
                                       </div>
-                                      <div className="shrink-0">
+                                      <div className="shrink-0 self-start sm:self-auto">
                                         <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 border border-blue-200">
                                           {(resource.score * 100).toFixed(0)}%
                                         </span>
