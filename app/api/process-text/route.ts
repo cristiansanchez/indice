@@ -53,37 +53,40 @@ function cleanJsonResponse(text: string): string {
   return cleaned.trim();
 }
 
-export async function POST(request: NextRequest) {
-  // Early debug logging - check API key availability immediately
-  const apiKey = process.env.GEMINI_API_KEY;
-  console.log("[API Route] Environment check:", {
-    hasApiKey: !!apiKey,
-    apiKeyLength: apiKey?.length || 0,
-    apiKeyPrefix: apiKey ? `${apiKey.substring(0, 7)}...` : "N/A",
-    nodeEnv: process.env.NODE_ENV,
-    allGeminiVars: Object.keys(process.env).filter(key => 
-      key.toUpperCase().includes("GEMINI") || key.toUpperCase().includes("API")
-    ),
-    timestamp: new Date().toISOString()
+async function callDeepSeekAPI(
+  apiKey: string,
+  model: string,
+  prompt: string
+): Promise<string> {
+  const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7
+    })
   });
 
-  // Fail early if API key is missing
-  if (!apiKey) {
-    console.error("[API Route] ERROR: GEMINI_API_KEY is not set in environment variables");
-    console.error("[API Route] Available env keys (filtered):", 
-      Object.keys(process.env)
-        .filter(key => key.includes("GEMINI") || key.includes("API") || key.includes("VERCEL"))
-        .sort()
-    );
-    return NextResponse.json(
-      { 
-        error: "Server configuration error: GEMINI_API_KEY not set",
-        details: "Please ensure GEMINI_API_KEY is configured in Vercel environment variables and redeploy."
-      },
-      { status: 500 }
-    );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(`DeepSeek API error: ${response.status} - ${JSON.stringify(errorData)}`);
   }
 
+  const data = await response.json();
+  return data.choices[0]?.message?.content || "";
+}
+
+export async function POST(request: NextRequest) {
   try {
     const { text, model } = await request.json();
 
@@ -95,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate model if provided
-    const allowedModels = ["gemini-2.5-flash"];
+    const allowedModels = ["gemini-2.5-flash", "deepseek-chat", "deepseek-reasoner"];
     const modelName = model || "gemini-2.5-flash";
     if (model && !allowedModels.includes(model)) {
       return NextResponse.json(
@@ -104,32 +107,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("[API Route] Processing text request, length:", text.length, "model:", modelName);
+    // Determine provider and get appropriate API key
+    const isDeepSeek = modelName.startsWith("deepseek-");
+    const providerApiKey = isDeepSeek 
+      ? process.env.DEEPSEEK_API_KEY 
+      : process.env.GEMINI_API_KEY;
+    
+    if (!providerApiKey) {
+      return NextResponse.json(
+        { 
+          error: `Server configuration error: ${isDeepSeek ? "DEEPSEEK_API_KEY" : "GEMINI_API_KEY"} not set`,
+          details: `Please ensure ${isDeepSeek ? "DEEPSEEK_API_KEY" : "GEMINI_API_KEY"} is configured in Vercel environment variables and redeploy.`
+        },
+        { status: 500 }
+      );
+    }
 
-    // Initialize Gemini
-    console.log("[API Route] Initializing Gemini client...");
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const geminiModel = genAI.getGenerativeModel({ 
-      model: modelName,
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.7
-      }
-    });
-    console.log("[API Route] Gemini client initialized successfully");
+    console.log("[API Route] Processing text request, length:", text.length, "model:", modelName);
 
     // Build full prompt combining system and user content
     const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{{TEXT_INPUT}}", text);
     const fullPrompt = systemPrompt;
 
-    // Generate content using Gemini API
-    const result = await geminiModel.generateContent(fullPrompt);
-    const response = await result.response;
-    const responseText = response.text();
+    // Generate content using appropriate API
+    let responseText: string;
+    
+    if (isDeepSeek) {
+      console.log("[API Route] Calling DeepSeek API with model:", modelName);
+      responseText = await callDeepSeekAPI(providerApiKey, modelName, fullPrompt);
+    } else {
+      console.log("[API Route] Initializing Gemini client...");
+      const genAI = new GoogleGenerativeAI(providerApiKey);
+      const geminiModel = genAI.getGenerativeModel({ 
+        model: modelName,
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.7
+        }
+      });
+      console.log("[API Route] Gemini client initialized successfully");
+      
+      const result = await geminiModel.generateContent(fullPrompt);
+      const response = await result.response;
+      responseText = response.text();
+    }
     
     if (!responseText) {
       return NextResponse.json(
-        { error: "No response received from Gemini API" },
+        { error: `No response received from ${isDeepSeek ? "DeepSeek" : "Gemini"} API` },
         { status: 500 }
       );
     }
@@ -165,24 +190,24 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error processing text:", error);
     
-    // Handle specific Gemini API errors
-    if (error.status === 401 || error.message?.includes("Invalid API key") || error.message?.includes("invalid_api_key") || error.message?.includes("API_KEY_INVALID")) {
+    // Handle specific API errors (works for both Gemini and DeepSeek)
+    if (error.status === 401 || error.message?.includes("Invalid API key") || error.message?.includes("invalid_api_key") || error.message?.includes("API_KEY_INVALID") || error.message?.includes("DeepSeek API error: 401")) {
       return NextResponse.json(
-        { error: "Invalid API key. Please check your GEMINI_API_KEY configuration." },
+        { error: "Invalid API key. Please check your API key configuration." },
         { status: 401 }
       );
     }
 
-    if (error.status === 429 || error.message?.includes("rate_limit_exceeded") || error.message?.includes("quota") || error.message?.includes("RESOURCE_EXHAUSTED")) {
+    if (error.status === 429 || error.message?.includes("rate_limit_exceeded") || error.message?.includes("quota") || error.message?.includes("RESOURCE_EXHAUSTED") || error.message?.includes("DeepSeek API error: 429")) {
       return NextResponse.json(
         { error: "API quota exceeded or rate limit reached. Please try again later." },
         { status: 429 }
       );
     }
 
-    if (error.status === 402 || error.message?.includes("insufficient_quota")) {
+    if (error.status === 402 || error.message?.includes("insufficient_quota") || error.message?.includes("DeepSeek API error: 402")) {
       return NextResponse.json(
-        { error: "Insufficient quota. Please check your Gemini account billing." },
+        { error: "Insufficient quota. Please check your account billing." },
         { status: 402 }
       );
     }
