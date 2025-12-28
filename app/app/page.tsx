@@ -308,22 +308,22 @@ export default function AppPage() {
                             </span>
                           </div>
                           {module.resources && module.resources.length > 0 && (
-                            <div className="mt-4 pt-4 border-t border-gray-200 overflow-hidden">
+                            <div className="mt-4 pt-4 border-t border-gray-200 overflow-hidden w-full max-w-full">
                               <h5 className="text-xs font-semibold text-gray-700 mb-2">Resources:</h5>
-                              <div className="space-y-2">
+                              <div className="space-y-2 w-full max-w-full">
                                 {module.resources.map((resource, idx) => (
                                   <a
                                     key={idx}
                                     href={resource.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="block p-2 sm:p-3 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition-colors overflow-hidden"
+                                    className="block p-2 sm:p-3 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition-colors overflow-hidden w-full max-w-full"
                                   >
-                                    <div className="flex flex-col sm:flex-row items-start justify-between gap-2 min-w-0">
-                                      <div className="flex-1 min-w-0 overflow-hidden">
-                                        <div className="font-medium text-sm text-gray-900 break-words">{resource.title}</div>
-                                        <div className="text-xs text-gray-600 mt-1 break-words">{resource.content}</div>
-                                        <div className="text-xs text-blue-600 mt-1 break-all break-words overflow-wrap-anywhere hyphens-auto">{resource.url}</div>
+                                    <div className="flex flex-col sm:flex-row items-start justify-between gap-2 min-w-0 w-full max-w-full">
+                                      <div className="flex-1 min-w-0 overflow-hidden w-full max-w-full">
+                                        <div className="font-medium text-sm text-gray-900 break-words w-full max-w-full">{resource.title}</div>
+                                        <div className="text-xs text-gray-600 mt-1 break-words w-full max-w-full">{resource.content}</div>
+                                        <div className="text-xs text-blue-600 mt-1 break-words break-all overflow-wrap-anywhere w-full max-w-full">{resource.url}</div>
                                       </div>
                                       <div className="shrink-0 self-start sm:self-auto">
                                         <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 border border-blue-200">
