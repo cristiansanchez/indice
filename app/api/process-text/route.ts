@@ -21,7 +21,7 @@ I will provide you with a text input. Your goal is to identify the core subject 
 "learning_modules": [
 {
 "order": number,
-"title": "Title of the concept/module",
+"title": "A full, self-explanatory title that explicitly includes the subject context (e.g., 'Legal Landscape of Crypto', not just 'Legal Landscape')",
 "description": "A concise explanation of what will be learned (max 25 words)",
 "difficulty": "Beginner" OR "Intermediate" OR "Advanced"
 }
