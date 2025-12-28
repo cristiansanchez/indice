@@ -197,14 +197,14 @@ export default function AppPage() {
   return (
     <div className="min-h-screen bg-white p-4 sm:p-6 relative">
       {/* Model Selector */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+      <div className="absolute top-2 right-2 sm:top-6 sm:right-6 z-10 max-w-[calc(100%-1rem)] sm:max-w-none">
         <label htmlFor="model-select" className="sr-only">Select LLM Model</label>
         <select
           id="model-select"
           value={selectedModel}
           onChange={(e) => setSelectedModel(e.target.value)}
           disabled={isLoading}
-          className="px-2 py-1.5 text-xs border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-1.5 py-1 text-[10px] sm:text-xs border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed max-w-[140px] sm:max-w-none"
         >
           {availableModels.map((model) => (
             <option key={model.value} value={model.value}>
@@ -213,9 +213,9 @@ export default function AppPage() {
           ))}
         </select>
       </div>
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-8 pt-12 sm:pt-8">
         {/* Icon */}
-        <div className="flex justify-center">
+        <div className="flex justify-center mt-8 sm:mt-0">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
             <Cpu className="w-8 h-8 text-gray-700" />
           </div>
