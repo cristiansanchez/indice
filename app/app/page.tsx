@@ -69,7 +69,13 @@ export default function AppPage() {
   };
 
   const handleMenuAction = (action: string, moduleOrder: number) => {
-    // Placeholder for future functionality
+    if (action === "Ground") {
+      const module = result?.learning_modules.find(m => m.order === moduleOrder);
+      if (module) {
+        handleEnrichSingleModule(module);
+      }
+    }
+    // Placeholder for other future functionality
     console.log(`Action: ${action} for module ${moduleOrder}`);
     handleMenuClose();
   };
@@ -461,6 +467,20 @@ export default function AppPage() {
                                   >
                                     Zoom in
                                   </button>
+                                  <button
+                                    onClick={() => handleMenuAction("Ground", module.order)}
+                                    disabled={enrichingModule === module.order || isEnriching || !result}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                  >
+                                    {enrichingModule === module.order ? (
+                                      <>
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                        <span>Ground (Loading...)</span>
+                                      </>
+                                    ) : (
+                                      <span>Ground</span>
+                                    )}
+                                  </button>
                                 </div>
                               </div>
                             )}
@@ -476,26 +496,6 @@ export default function AppPage() {
                               <Check className="w-4 h-4" />
                             ) : (
                               <Copy className="w-4 h-4" />
-                            )}
-                          </Button>
-                          {/* Enrich button */}
-                          <Button
-                            onClick={() => handleEnrichSingleModule(module)}
-                            disabled={enrichingModule === module.order || isEnriching || !result}
-                            variant="ghost"
-                            size="sm"
-                            className="h-9 px-2 text-xs"
-                            title="Enrich this module with resources"
-                          >
-                            {enrichingModule === module.order ? (
-                              <>
-                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                <span className="hidden sm:inline">Loading...</span>
-                              </>
-                            ) : (
-                              <>
-                                <span className="text-xs">+ Resources</span>
-                              </>
                             )}
                           </Button>
                         </div>
