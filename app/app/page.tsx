@@ -365,10 +365,92 @@ export default function AppPage() {
               {result.learning_modules
                 .sort((a, b) => a.order - b.order)
                 .map((module) => (
-                    <Card key={module.order} className="border-gray-200">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 space-y-3 min-w-0">
+                    <Card key={module.order} className="border-gray-200 relative">
+                    <CardContent className="p-4 sm:p-6 relative">
+                      {/* Actions container - absolutely positioned */}
+                      <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+                        {/* Menu button */}
+                        <div
+                          className="relative"
+                          ref={(el) => {
+                            if (el) {
+                              menuRefs.current.set(module.order, el);
+                            } else {
+                              menuRefs.current.delete(module.order);
+                            }
+                          }}
+                        >
+                          <Button
+                            onClick={() => handleMenuToggle(module.order)}
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 w-9 p-0"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                          {/* Dropdown menu */}
+                          {openMenuIndex === module.order && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                              <div className="py-1">
+                                <button
+                                  onClick={() => handleMenuAction("Delete", module.order)}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                >
+                                  Delete
+                                </button>
+                                <button
+                                  onClick={() => handleMenuAction("Rewrite", module.order)}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                >
+                                  Rewrite
+                                </button>
+                                <button
+                                  onClick={() => handleMenuAction("Add subpoints", module.order)}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                >
+                                  Add subpoints
+                                </button>
+                                <button
+                                  onClick={() => handleMenuAction("Zoom in", module.order)}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                >
+                                  Zoom in
+                                </button>
+                                <button
+                                  onClick={() => handleMenuAction("Ground", module.order)}
+                                  disabled={enrichingModule === module.order || isEnriching || !result}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                  {enrichingModule === module.order ? (
+                                    <>
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                      <span>Ground (Loading...)</span>
+                                    </>
+                                  ) : (
+                                    <span>Ground</span>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {/* Copy button */}
+                        <Button
+                          onClick={() => copyModule(module)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 w-9 p-0"
+                        >
+                          {copiedIndex === module.order ? (
+                            <Check className="w-4 h-4" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                      
+                      {/* Content container - main flow */}
+                      <div className="space-y-3 min-w-0 pr-16 sm:pr-20">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-medium text-gray-500">
                               #{module.order}
@@ -418,87 +500,6 @@ export default function AppPage() {
                               </div>
                             </div>
                           )}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {/* Menu button */}
-                          <div
-                            className="relative"
-                            ref={(el) => {
-                              if (el) {
-                                menuRefs.current.set(module.order, el);
-                              } else {
-                                menuRefs.current.delete(module.order);
-                              }
-                            }}
-                          >
-                            <Button
-                              onClick={() => handleMenuToggle(module.order)}
-                              variant="ghost"
-                              size="sm"
-                              className="h-9 w-9 p-0"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                            {/* Dropdown menu */}
-                            {openMenuIndex === module.order && (
-                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                                <div className="py-1">
-                                  <button
-                                    onClick={() => handleMenuAction("Delete", module.order)}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                  >
-                                    Delete
-                                  </button>
-                                  <button
-                                    onClick={() => handleMenuAction("Rewrite", module.order)}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                  >
-                                    Rewrite
-                                  </button>
-                                  <button
-                                    onClick={() => handleMenuAction("Add subpoints", module.order)}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                  >
-                                    Add subpoints
-                                  </button>
-                                  <button
-                                    onClick={() => handleMenuAction("Zoom in", module.order)}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                  >
-                                    Zoom in
-                                  </button>
-                                  <button
-                                    onClick={() => handleMenuAction("Ground", module.order)}
-                                    disabled={enrichingModule === module.order || isEnriching || !result}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                  >
-                                    {enrichingModule === module.order ? (
-                                      <>
-                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                        <span>Ground (Loading...)</span>
-                                      </>
-                                    ) : (
-                                      <span>Ground</span>
-                                    )}
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          {/* Copy button */}
-                          <Button
-                            onClick={() => copyModule(module)}
-                            variant="ghost"
-                            size="sm"
-                            className="h-9 w-9 p-0"
-                          >
-                            {copiedIndex === module.order ? (
-                              <Check className="w-4 h-4" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </div>
                       </div>
                     </CardContent>
                   </Card>
