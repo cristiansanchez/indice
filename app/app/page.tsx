@@ -74,6 +74,13 @@ export default function AppPage() {
     };
   }, [openMenuIndex, openResourceMenu]);
 
+  const handleCloseModal = useCallback(() => {
+    setShowTechnicalAnalysisModal(false);
+    setTechnicalAnalysisData(null);
+    setAnalyzingResourceKey(null);
+    setCopiedSection(null);
+  }, []);
+
   // Close modal with Escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -369,13 +376,6 @@ export default function AppPage() {
       setTimeout(() => setCopiedSection(null), 2000);
     });
   };
-
-  const handleCloseModal = useCallback(() => {
-    setShowTechnicalAnalysisModal(false);
-    setTechnicalAnalysisData(null);
-    setAnalyzingResourceKey(null);
-    setCopiedSection(null);
-  }, []);
 
   const formatFullContent = (data: LearningIndexResponse): string => {
     let content = `${data.main_topic}\n${data.topic_summary}\n\n`;
