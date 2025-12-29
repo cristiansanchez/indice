@@ -505,75 +505,74 @@ export default function AppPage() {
                                       key={idx}
                                       className="block p-2 sm:p-3 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition-colors overflow-hidden w-full max-w-full relative"
                                     >
+                                      {/* Buttons - absolutely positioned */}
+                                      <div className="absolute top-2 right-2 flex items-center gap-2 z-10">
+                                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 border border-blue-200">
+                                          {(resource.score * 100).toFixed(0)}%
+                                        </span>
+                                        {/* Resource menu button */}
+                                        <div
+                                          className="relative"
+                                          ref={(el) => {
+                                            if (el) {
+                                              resourceMenuRefs.current.set(resourceMenuKey, el);
+                                            } else {
+                                              resourceMenuRefs.current.delete(resourceMenuKey);
+                                            }
+                                          }}
+                                          onClick={(e) => e.preventDefault()}
+                                        >
+                                          <Button
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              handleResourceMenuToggle(module.order, idx);
+                                            }}
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-9 w-9 p-0"
+                                          >
+                                            <MoreVertical className="w-4 h-4" />
+                                          </Button>
+                                          {/* Dropdown menu */}
+                                          {openResourceMenu === resourceMenuKey && (
+                                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                              <div className="py-1">
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handleResourceMenuAction("Show raw data", module.order, idx);
+                                                  }}
+                                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                                >
+                                                  Show raw data
+                                                </button>
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handleResourceMenuAction("Technical Analysis", module.order, idx);
+                                                  }}
+                                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                                >
+                                                  Technical Analysis
+                                                </button>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
                                       <a
                                         href={resource.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="block"
+                                        className="block pr-16 sm:pr-20"
                                       >
-                                        <div className="flex flex-col sm:flex-row items-start justify-between gap-2 min-w-0 w-full max-w-full">
-                                          <div className="flex-1 min-w-0 overflow-hidden w-full max-w-full">
-                                            <div className="font-medium text-sm text-gray-900 break-words w-full max-w-full">{resource.title}</div>
-                                            <div className="text-xs text-gray-600 mt-1 break-words w-full max-w-full">{resource.content}</div>
-                                            <div className="text-xs text-blue-600 mt-1 break-words break-all overflow-wrap-anywhere w-full max-w-full">{resource.url}</div>
-                                          </div>
-                                          <div className="shrink-0 self-start sm:self-auto flex items-center gap-2">
-                                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 border border-blue-200">
-                                              {(resource.score * 100).toFixed(0)}%
-                                            </span>
-                                            {/* Resource menu button */}
-                                            <div
-                                              className="relative"
-                                              ref={(el) => {
-                                                if (el) {
-                                                  resourceMenuRefs.current.set(resourceMenuKey, el);
-                                                } else {
-                                                  resourceMenuRefs.current.delete(resourceMenuKey);
-                                                }
-                                              }}
-                                              onClick={(e) => e.preventDefault()}
-                                            >
-                                              <Button
-                                                onClick={(e) => {
-                                                  e.preventDefault();
-                                                  e.stopPropagation();
-                                                  handleResourceMenuToggle(module.order, idx);
-                                                }}
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-9 w-9 p-0"
-                                              >
-                                                <MoreVertical className="w-4 h-4" />
-                                              </Button>
-                                              {/* Dropdown menu */}
-                                              {openResourceMenu === resourceMenuKey && (
-                                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                                                  <div className="py-1">
-                                                    <button
-                                                      onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        handleResourceMenuAction("Show raw data", module.order, idx);
-                                                      }}
-                                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                                    >
-                                                      Show raw data
-                                                    </button>
-                                                    <button
-                                                      onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        handleResourceMenuAction("Technical Analysis", module.order, idx);
-                                                      }}
-                                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                                    >
-                                                      Technical Analysis
-                                                    </button>
-                                                  </div>
-                                                </div>
-                                              )}
-                                            </div>
-                                          </div>
+                                        <div className="min-w-0 overflow-hidden w-full max-w-full">
+                                          <div className="font-medium text-sm text-gray-900 break-words w-full max-w-full">{resource.title}</div>
+                                          <div className="text-xs text-gray-600 mt-1 break-words w-full max-w-full">{resource.content}</div>
+                                          <div className="text-xs text-blue-600 mt-1 break-words break-all overflow-wrap-anywhere w-full max-w-full">{resource.url}</div>
                                         </div>
                                       </a>
                                     </div>
