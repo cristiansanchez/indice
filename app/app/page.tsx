@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, FormEvent, useEffect, useRef } from "react";
+import { useState, FormEvent, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Cpu, Loader2, Copy, Check, MoreVertical } from "lucide-react";
+import { Cpu, Loader2, Copy, Check, MoreVertical, Settings, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { LearningIndexResponse, LearningModule, EnrichedModule } from "@/types/learning";
+import type { LearningIndexResponse, LearningModule, EnrichedModule, TechnicalAnalysisResponse } from "@/types/learning";
 
 export default function AppPage() {
   const [text, setText] = useState("");
@@ -20,6 +20,11 @@ export default function AppPage() {
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichingModule, setEnrichingModule] = useState<number | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-flash");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [technicalAnalysisData, setTechnicalAnalysisData] = useState<TechnicalAnalysisResponse | null>(null);
+  const [showTechnicalAnalysisModal, setShowTechnicalAnalysisModal] = useState(false);
+  const [analyzingResourceKey, setAnalyzingResourceKey] = useState<string | null>(null);
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const menuRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const resourceMenuRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const router = useRouter();
@@ -69,6 +74,23 @@ export default function AppPage() {
     };
   }, [openMenuIndex, openResourceMenu]);
 
+  // Close modal with Escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && showTechnicalAnalysisModal) {
+        handleCloseModal();
+      }
+    };
+
+    if (showTechnicalAnalysisModal) {
+      document.addEventListener("keydown", handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [showTechnicalAnalysisModal, handleCloseModal]);
+
   const handleMenuToggle = (moduleOrder: number) => {
     setOpenMenuIndex(openMenuIndex === moduleOrder ? null : moduleOrder);
   };
@@ -98,11 +120,63 @@ export default function AppPage() {
     setOpenResourceMenu(null);
   };
 
-  const handleResourceMenuAction = (action: string, moduleOrder: number, resourceIndex: number) => {
+  const handleResourceMenuAction = async (action: string, moduleOrder: number, resourceIndex: number) => {
     if (action === "Show raw data") {
       const resourceKey = `${moduleOrder}-${resourceIndex}`;
       setExpandedRawData(expandedRawData === resourceKey ? null : resourceKey);
+      handleResourceMenuClose();
+      return;
     }
+    
+    if (action === "Technical Analysis") {
+      const module = result?.learning_modules.find(m => m.order === moduleOrder);
+      if (!module || !module.resources || !module.resources[resourceIndex]) {
+        toast.error("Resource not found");
+        handleResourceMenuClose();
+        return;
+      }
+      
+      const resource = module.resources[resourceIndex];
+      if (!resource.raw_content) {
+        toast.error("Raw content not available for this resource");
+        handleResourceMenuClose();
+        return;
+      }
+      
+      const resourceMenuKey = `${moduleOrder}-${resourceIndex}`;
+      setIsAnalyzing(true);
+      setShowTechnicalAnalysisModal(true);
+      setAnalyzingResourceKey(resourceMenuKey);
+      setTechnicalAnalysisData(null);
+      
+      try {
+        const response = await fetch("/api/technical-analysis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            raw_content: resource.raw_content,
+            model: selectedModel
+          }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          setTechnicalAnalysisData(data);
+          toast.success("Technical analysis completed!");
+        } else {
+          toast.error(data.error || "Failed to analyze resource");
+        }
+      } catch (err) {
+        toast.error("An error occurred during analysis. Please try again.");
+      } finally {
+        setIsAnalyzing(false);
+      }
+      
+      handleResourceMenuClose();
+      return;
+    }
+    
     // Placeholder for other future functionality
     console.log(`Action: ${action} for resource ${resourceIndex} in module ${moduleOrder}`);
     handleResourceMenuClose();
@@ -252,6 +326,56 @@ export default function AppPage() {
       setTimeout(() => setCopiedIndex(null), 2000);
     });
   };
+
+  const copySection = (sectionKey: string, content: string) => {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopiedSection(sectionKey);
+      toast.success("Section copied to clipboard!");
+      setTimeout(() => setCopiedSection(null), 2000);
+    });
+  };
+
+  const copyAllAnalysis = () => {
+    if (!technicalAnalysisData) return;
+
+    const data = technicalAnalysisData.response_structure;
+    let allContent = "TECHNICAL ANALYSIS\n\n";
+    
+    allContent += "TECHNICAL EXPLANATION\n";
+    allContent += data.section_A_technical_explanation.content + "\n\n";
+    
+    allContent += "NARRATIVE EXPLANATION\n";
+    allContent += data.section_B_narrative_explanation.content + "\n\n";
+    
+    allContent += "IMPLEMENTATION GUIDE\n";
+    data.section_C_implementation_guide.steps.forEach((step) => {
+      allContent += `${step.step_number}. ${step.action_title}\n`;
+      allContent += `Why: ${step.why}\n`;
+      allContent += `How: ${step.how}\n\n`;
+    });
+    
+    allContent += "QUOTE MINING\n";
+    data.section_D_quote_mining.quotes.forEach((quote, idx) => {
+      allContent += `Quote ${idx + 1}: "${quote.quote_text}"\n`;
+      allContent += `Editor's Note: ${quote.editors_note}\n\n`;
+    });
+    
+    allContent += "BLIND SPOTS & CONTRADICTIONS\n";
+    allContent += data.section_E_blind_spots.content;
+
+    navigator.clipboard.writeText(allContent).then(() => {
+      setCopiedSection("all");
+      toast.success("All analysis copied to clipboard!");
+      setTimeout(() => setCopiedSection(null), 2000);
+    });
+  };
+
+  const handleCloseModal = useCallback(() => {
+    setShowTechnicalAnalysisModal(false);
+    setTechnicalAnalysisData(null);
+    setAnalyzingResourceKey(null);
+    setCopiedSection(null);
+  }, []);
 
   const formatFullContent = (data: LearningIndexResponse): string => {
     let content = `${data.main_topic}\n${data.topic_summary}\n\n`;
@@ -621,6 +745,207 @@ export default function AppPage() {
           </div>
         )}
       </div>
+
+      {/* Technical Analysis Modal */}
+      {showTechnicalAnalysisModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto">
+          <div className="w-full max-w-4xl mx-auto mt-8 mb-8 bg-white rounded-lg shadow-xl relative">
+            {/* Header */}
+            <div className="sticky top-0 bg-gray-800 text-white px-6 py-4 rounded-t-lg flex items-center justify-between z-10">
+              <div className="flex items-center gap-3">
+                <Settings className="w-5 h-5" />
+                <h2 className="text-xl font-semibold">Technical Analysis</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                {!isAnalyzing && technicalAnalysisData && (
+                  <Button
+                    onClick={copyAllAnalysis}
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-gray-700"
+                  >
+                    {copiedSection === "all" ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy All
+                      </>
+                    )}
+                  </Button>
+                )}
+                <Button
+                  onClick={handleCloseModal}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-gray-700 h-8 w-8 p-0"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 max-h-[calc(100vh-8rem)] overflow-y-auto">
+              {isAnalyzing ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Loader2 className="w-12 h-12 animate-spin text-gray-400 mb-4" />
+                  <p className="text-gray-600">Analyzing article...</p>
+                </div>
+              ) : technicalAnalysisData ? (
+                <div className="space-y-6">
+                  {/* Section A - Technical Explanation */}
+                  <div className="border-b border-gray-200 pb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900">Technical Explanation</h3>
+                      <Button
+                        onClick={() => copySection("technical", technicalAnalysisData.response_structure.section_A_technical_explanation.content)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                      >
+                        {copiedSection === "technical" ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-gray-600" />
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {technicalAnalysisData.response_structure.section_A_technical_explanation.content}
+                    </p>
+                  </div>
+
+                  {/* Section B - Narrative Explanation */}
+                  <div className="border-b border-gray-200 pb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900">Narrative Explanation</h3>
+                      <Button
+                        onClick={() => copySection("narrative", technicalAnalysisData.response_structure.section_B_narrative_explanation.content)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                      >
+                        {copiedSection === "narrative" ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-gray-600" />
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-gray-700 text-sm leading-relaxed italic">
+                      {technicalAnalysisData.response_structure.section_B_narrative_explanation.content}
+                    </p>
+                  </div>
+
+                  {/* Section C - Implementation Guide */}
+                  <div className="border-b border-gray-200 pb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900">Implementation Guide</h3>
+                      <Button
+                        onClick={() => {
+                          const steps = technicalAnalysisData.response_structure.section_C_implementation_guide.steps;
+                          const content = steps.map(s => `${s.step_number}. ${s.action_title}\nWhy: ${s.why}\nHow: ${s.how}`).join("\n\n");
+                          copySection("implementation", content);
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                      >
+                        {copiedSection === "implementation" ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-gray-600" />
+                        )}
+                      </Button>
+                    </div>
+                    <div className="space-y-4">
+                      {technicalAnalysisData.response_structure.section_C_implementation_guide.steps.map((step) => (
+                        <div key={step.step_number} className="pl-4 border-l-2 border-gray-300">
+                          <h4 className="font-semibold text-gray-900 mb-2">{step.step_number}. {step.action_title}</h4>
+                          <p className="text-sm text-gray-700 mb-1"><span className="font-medium">Why:</span> {step.why}</p>
+                          <p className="text-sm text-gray-700"><span className="font-medium">How:</span> {step.how}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Section D - Quote Mining */}
+                  <div className="border-b border-gray-200 pb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900">Quote Mining</h3>
+                      <Button
+                        onClick={() => {
+                          const quotes = technicalAnalysisData.response_structure.section_D_quote_mining.quotes;
+                          const content = quotes.map((q, idx) => `Quote ${idx + 1}: "${q.quote_text}"\nEditor's Note: ${q.editors_note}`).join("\n\n");
+                          copySection("quotes", content);
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                      >
+                        {copiedSection === "quotes" ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-gray-600" />
+                        )}
+                      </Button>
+                    </div>
+                    <div className="space-y-4">
+                      {technicalAnalysisData.response_structure.section_D_quote_mining.quotes.map((quote, idx) => (
+                        <div key={idx} className="pl-4 border-l-2 border-gray-300">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-semibold text-gray-900">Quote {idx + 1}</h4>
+                            <Button
+                              onClick={() => copySection(`quote-${idx}`, `"${quote.quote_text}"\nEditor's Note: ${quote.editors_note}`)}
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                            >
+                              {copiedSection === `quote-${idx}` ? (
+                                <Check className="w-3 h-3 text-green-600" />
+                              ) : (
+                                <Copy className="w-3 h-3 text-gray-600" />
+                              )}
+                            </Button>
+                          </div>
+                          <p className="text-sm text-gray-700 italic mb-2">"{quote.quote_text}"</p>
+                          <p className="text-xs text-gray-600 italic">Editor's Note: {quote.editors_note}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Section E - Blind Spots */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900">Blind Spots & Contradictions</h3>
+                      <Button
+                        onClick={() => copySection("blindspots", technicalAnalysisData.response_structure.section_E_blind_spots.content)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                      >
+                        {copiedSection === "blindspots" ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-gray-600" />
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {technicalAnalysisData.response_structure.section_E_blind_spots.content}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
