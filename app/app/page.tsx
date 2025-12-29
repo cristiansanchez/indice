@@ -16,6 +16,7 @@ export default function AppPage() {
   const [copiedIndex, setCopiedIndex] = useState<number | "all" | null>(null);
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const [openResourceMenu, setOpenResourceMenu] = useState<string | null>(null);
+  const [expandedRawData, setExpandedRawData] = useState<string | null>(null);
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichingModule, setEnrichingModule] = useState<number | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-flash");
@@ -98,7 +99,11 @@ export default function AppPage() {
   };
 
   const handleResourceMenuAction = (action: string, moduleOrder: number, resourceIndex: number) => {
-    // Placeholder for future functionality
+    if (action === "Show raw data") {
+      const resourceKey = `${moduleOrder}-${resourceIndex}`;
+      setExpandedRawData(expandedRawData === resourceKey ? null : resourceKey);
+    }
+    // Placeholder for other future functionality
     console.log(`Action: ${action} for resource ${resourceIndex} in module ${moduleOrder}`);
     handleResourceMenuClose();
   };
@@ -501,8 +506,8 @@ export default function AppPage() {
                                 {module.resources.map((resource, idx) => {
                                   const resourceMenuKey = `${module.order}-${idx}`;
                                   return (
+                                    <div key={idx}>
                                     <div
-                                      key={idx}
                                       className="block p-2 sm:p-3 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition-colors overflow-hidden w-full max-w-full relative"
                                     >
                                       {/* Buttons - absolutely positioned */}
@@ -576,7 +581,16 @@ export default function AppPage() {
                                         </div>
                                       </a>
                                     </div>
-                                  );
+                                    {/* Raw data display block */}
+                                    {expandedRawData === resourceMenuKey && resource.raw_content && (
+                                      <div className="mt-2 p-4 bg-gray-100 border border-gray-200 rounded-lg max-h-96 overflow-y-auto">
+                                        <div className="text-xs font-mono whitespace-pre-wrap break-words text-gray-800">
+                                          {resource.raw_content}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
                                 })}
                               </div>
                             </div>
