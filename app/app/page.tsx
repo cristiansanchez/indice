@@ -624,7 +624,7 @@ export default function AppPage() {
                             </span>
                           </div>
                           {module.resources && module.resources.length > 0 && (
-                            <div className="mt-4 pt-4 border-t border-gray-200 overflow-hidden w-full max-w-full">
+                            <div className="mt-4 pt-4 border-t border-gray-200 overflow-visible w-full max-w-full">
                               <h5 className="text-xs font-semibold text-gray-700 mb-2">Resources:</h5>
                               <div className="space-y-2 w-full max-w-full">
                                 {module.resources.map((resource, idx) => {
@@ -632,7 +632,7 @@ export default function AppPage() {
                                   return (
                                     <div key={idx}>
                                     <div
-                                      className="block p-2 sm:p-3 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition-colors overflow-hidden w-full max-w-full relative"
+                                      className="block p-2 sm:p-3 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition-colors overflow-visible w-full max-w-full relative"
                                     >
                                       {/* Buttons - absolutely positioned */}
                                       <div className="absolute top-2 right-2 flex items-center gap-2 z-10">
@@ -665,7 +665,7 @@ export default function AppPage() {
                                           </Button>
                                           {/* Dropdown menu */}
                                           {openResourceMenu === resourceMenuKey && (
-                                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                                               <div className="py-1">
                                                 <button
                                                   onClick={(e) => {
@@ -865,7 +865,24 @@ export default function AppPage() {
                     <div className="space-y-4">
                       {technicalAnalysisData.response_structure.section_C_implementation_guide.steps.map((step) => (
                         <div key={step.step_number} className="pl-4 border-l-2 border-gray-300">
-                          <h4 className="font-semibold text-gray-900 mb-2">{step.step_number}. {step.action_title}</h4>
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-semibold text-gray-900">{step.step_number}. {step.action_title}</h4>
+                            <Button
+                              onClick={() => {
+                                const content = `${step.step_number}. ${step.action_title}\nWhy: ${step.why}\nHow: ${step.how}`;
+                                copySection(`step-${step.step_number}`, content);
+                              }}
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                            >
+                              {copiedSection === `step-${step.step_number}` ? (
+                                <Check className="w-3 h-3 text-green-600" />
+                              ) : (
+                                <Copy className="w-3 h-3 text-gray-600" />
+                              )}
+                            </Button>
+                          </div>
                           <p className="text-sm text-gray-700 mb-1"><span className="font-medium">Why:</span> {step.why}</p>
                           <p className="text-sm text-gray-700"><span className="font-medium">How:</span> {step.how}</p>
                         </div>
