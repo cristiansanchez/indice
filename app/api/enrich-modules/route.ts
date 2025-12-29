@@ -13,6 +13,7 @@ interface TavilyResult {
   url: string;
   score: number;
   content: string;
+  raw_content?: string;
 }
 
 interface TavilyResponse {
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
             api_key: apiKey,
             query: query,
             max_results: 4,
-            include_raw_content: false
+            include_raw_content: true
           })
         });
 
@@ -104,7 +105,8 @@ export async function POST(request: NextRequest) {
           title: result.title,
           url: result.url,
           score: result.score,
-          content: result.content
+          content: result.content,
+          raw_content: result.raw_content
         }));
 
         console.log(`[Enrich API] Found ${resources.length} results for module "${module.title}"`);

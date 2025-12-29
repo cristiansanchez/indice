@@ -5,6 +5,7 @@ export interface Resource {
   content: string;
   url: string;
   score: number;
+  raw_content?: string;
 }
 
 export interface LearningModule {
