@@ -4,8 +4,10 @@ import type { TechnicalAnalysisResponse } from "@/types/learning";
 
 const TECHNICAL_ANALYSIS_PROMPT = `You are an expert knowledge management system. Analyze the following text and extract structured knowledge into a JSON format that is optimized for personal learning databases.
 
-SECTION A - Technical Explanation (80-110 words):
-Rewrite the text using technical, precise, and formal language. High information density. Focus on methodology and data.
+SECTION A - Executive Summary:
+Executive Summary: A 3-5 sentence overview of the main thesis.
+Key Takeaways: A list of 5-10 detailed bullet points covering the major arguments.
+Conclusion: A final paragraph on the implications of the text.
 
 SECTION B - Narrative Explanation (80-110 words):
 Transform the content into a fluid narrative essay. Connect ideas logically like a story. Use metaphors if needed.
@@ -28,8 +30,10 @@ TEXT TO ANALYZE:
 Respond with ONLY a valid JSON object following this structure:
 {
   "response_structure": {
-    "section_A_technical_explanation": {
-      "content": "string"
+    "section_A_executive_summary": {
+      "executive_summary": "string",
+      "key_takeaways": ["string"],
+      "conclusion": "string"
     },
     "section_B_narrative_explanation": {
       "content": "string"
@@ -216,7 +220,7 @@ export async function POST(request: NextRequest) {
     // Validate structure
     if (
       !analysisResult.response_structure ||
-      !analysisResult.response_structure.section_A_technical_explanation ||
+      !analysisResult.response_structure.section_A_executive_summary ||
       !analysisResult.response_structure.section_B_narrative_explanation ||
       !analysisResult.response_structure.section_C_implementation_guide ||
       !analysisResult.response_structure.section_D_quote_mining ||
@@ -260,4 +264,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
 

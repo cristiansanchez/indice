@@ -33,8 +33,10 @@ export interface LearningIndexResponse {
 
 export interface TechnicalAnalysisResponse {
   response_structure: {
-    section_A_technical_explanation: {
-      content: string;
+    section_A_executive_summary: {
+      executive_summary: string;
+      key_takeaways: string[];
+      conclusion: string;
     };
     section_B_narrative_explanation: {
       content: string;

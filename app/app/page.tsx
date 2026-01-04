@@ -348,8 +348,15 @@ export default function AppPage() {
     const data = technicalAnalysisData.response_structure;
     let allContent = "TECHNICAL ANALYSIS\n\n";
     
-    allContent += "TECHNICAL EXPLANATION\n";
-    allContent += data.section_A_technical_explanation.content + "\n\n";
+    allContent += "EXECUTIVE SUMMARY\n";
+    allContent += "Executive Summary:\n";
+    allContent += data.section_A_executive_summary.executive_summary + "\n\n";
+    allContent += "Key Takeaways:\n";
+    data.section_A_executive_summary.key_takeaways.forEach((item) => {
+      allContent += `• ${item}\n`;
+    });
+    allContent += "\nConclusion:\n";
+    allContent += data.section_A_executive_summary.conclusion + "\n\n";
     
     allContent += "NARRATIVE EXPLANATION\n";
     allContent += data.section_B_narrative_explanation.content + "\n\n";
@@ -797,26 +804,49 @@ export default function AppPage() {
                 </div>
               ) : technicalAnalysisData ? (
                 <div className="space-y-6">
-                  {/* Section A - Technical Explanation */}
+                  {/* Section A - Executive Summary */}
                   <div className="border-b border-gray-200 pb-4">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900">Technical Explanation</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">Executive Summary</h3>
                       <Button
-                        onClick={() => copySection("technical", technicalAnalysisData.response_structure.section_A_technical_explanation.content)}
+                        onClick={() => {
+                          const data = technicalAnalysisData.response_structure.section_A_executive_summary;
+                          const content = `Executive Summary:\n${data.executive_summary}\n\nKey Takeaways:\n${data.key_takeaways.map((item, idx) => `• ${item}`).join('\n')}\n\nConclusion:\n${data.conclusion}`;
+                          copySection("executive", content);
+                        }}
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0"
                       >
-                        {copiedSection === "technical" ? (
+                        {copiedSection === "executive" ? (
                           <Check className="w-4 h-4 text-green-600" />
                         ) : (
                           <Copy className="w-4 h-4 text-gray-600" />
                         )}
                       </Button>
                     </div>
-                    <p className="text-gray-700 text-sm leading-relaxed">
-                      {technicalAnalysisData.response_structure.section_A_technical_explanation.content}
-                    </p>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-2">Executive Summary:</h4>
+                        <p className="text-gray-700 text-sm leading-relaxed">
+                          {technicalAnalysisData.response_structure.section_A_executive_summary.executive_summary}
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-2">Key Takeaways:</h4>
+                        <ul className="list-disc list-inside space-y-1 text-gray-700 text-sm">
+                          {technicalAnalysisData.response_structure.section_A_executive_summary.key_takeaways.map((item, idx) => (
+                            <li key={idx}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-2">Conclusion:</h4>
+                        <p className="text-gray-700 text-sm leading-relaxed">
+                          {technicalAnalysisData.response_structure.section_A_executive_summary.conclusion}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Section B - Narrative Explanation */}
