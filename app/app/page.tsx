@@ -32,7 +32,19 @@ export default function AppPage() {
   const availableModels = [
     { value: "gemini-2.5-flash", label: "Gemini Flash 2.5", cost: 0.15 },
     { value: "deepseek-chat", label: "DeepSeek Chat V3.2", cost: 0.15 },
-    { value: "deepseek-reasoner", label: "DeepSeek Reasoner V3.2", cost: 0.20 }
+    { value: "deepseek-reasoner", label: "DeepSeek Reasoner V3.2", cost: 0.20 },
+    { value: "gpt-5.2", label: "GPT-5.2", cost: 12.88 },
+    { value: "gpt-5.1", label: "GPT-5.1", cost: 9.20 },
+    { value: "gpt-5", label: "GPT-5", cost: 9.20 },
+    { value: "gpt-5-mini", label: "GPT-5 Mini", cost: 1.84 },
+    { value: "gpt-5-nano", label: "GPT-5 Nano", cost: 0.37 },
+    { value: "gpt-5.2-chat-latest", label: "GPT-5.2 Chat Latest", cost: 12.88 },
+    { value: "gpt-5.1-chat-latest", label: "GPT-5.1 Chat Latest", cost: 9.20 },
+    { value: "gpt-5-chat-latest", label: "GPT-5 Chat Latest", cost: 9.20 },
+    { value: "gpt-5.1-codex-max", label: "GPT-5.1 Codex Max", cost: 9.20 },
+    { value: "gpt-5.1-codex", label: "GPT-5.1 Codex", cost: 9.20 },
+    { value: "gpt-5-codex", label: "GPT-5 Codex", cost: 9.20 },
+    { value: "gpt-5.2-pro", label: "GPT-5.2 Pro", cost: 154.56 }
   ];
 
   // Client-side authentication check as additional security layer

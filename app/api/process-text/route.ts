@@ -86,6 +86,39 @@ async function callDeepSeekAPI(
   return data.choices[0]?.message?.content || "";
 }
 
+async function callOpenAIAPI(
+  apiKey: string,
+  model: string,
+  prompt: string
+): Promise<string> {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(`OpenAI API error: ${response.status} - ${JSON.stringify(errorData)}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0]?.message?.content || "";
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { text, model } = await request.json();
@@ -98,7 +131,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate model if provided
-    const allowedModels = ["gemini-2.5-flash", "deepseek-chat", "deepseek-reasoner"];
+    const allowedModels = [
+      "gemini-2.5-flash",
+      "deepseek-chat",
+      "deepseek-reasoner",
+      "gpt-5.2",
+      "gpt-5.1",
+      "gpt-5",
+      "gpt-5-mini",
+      "gpt-5-nano",
+      "gpt-5.2-chat-latest",
+      "gpt-5.1-chat-latest",
+      "gpt-5-chat-latest",
+      "gpt-5.1-codex-max",
+      "gpt-5.1-codex",
+      "gpt-5-codex",
+      "gpt-5.2-pro"
+    ];
     const modelName = model || "gemini-2.5-flash";
     if (model && !allowedModels.includes(model)) {
       return NextResponse.json(
@@ -109,15 +158,19 @@ export async function POST(request: NextRequest) {
 
     // Determine provider and get appropriate API key
     const isDeepSeek = modelName.startsWith("deepseek-");
+    const isOpenAI = modelName.startsWith("gpt-");
     const providerApiKey = isDeepSeek 
       ? process.env.DEEPSEEK_API_KEY 
+      : isOpenAI
+      ? process.env.OPENAI_API_KEY
       : process.env.GEMINI_API_KEY;
     
     if (!providerApiKey) {
+      const providerName = isDeepSeek ? "DEEPSEEK_API_KEY" : isOpenAI ? "OPENAI_API_KEY" : "GEMINI_API_KEY";
       return NextResponse.json(
         { 
-          error: `Server configuration error: ${isDeepSeek ? "DEEPSEEK_API_KEY" : "GEMINI_API_KEY"} not set`,
-          details: `Please ensure ${isDeepSeek ? "DEEPSEEK_API_KEY" : "GEMINI_API_KEY"} is configured in Vercel environment variables and redeploy.`
+          error: `Server configuration error: ${providerName} not set`,
+          details: `Please ensure ${providerName} is configured in Vercel environment variables and redeploy.`
         },
         { status: 500 }
       );
@@ -135,6 +188,9 @@ export async function POST(request: NextRequest) {
     if (isDeepSeek) {
       console.log("[API Route] Calling DeepSeek API with model:", modelName);
       responseText = await callDeepSeekAPI(providerApiKey, modelName, fullPrompt);
+    } else if (isOpenAI) {
+      console.log("[API Route] Calling OpenAI API with model:", modelName);
+      responseText = await callOpenAIAPI(providerApiKey, modelName, fullPrompt);
     } else {
       console.log("[API Route] Initializing Gemini client...");
       const genAI = new GoogleGenerativeAI(providerApiKey);
@@ -153,8 +209,9 @@ export async function POST(request: NextRequest) {
     }
     
     if (!responseText) {
+      const providerName = isDeepSeek ? "DeepSeek" : isOpenAI ? "OpenAI" : "Gemini";
       return NextResponse.json(
-        { error: `No response received from ${isDeepSeek ? "DeepSeek" : "Gemini"} API` },
+        { error: `No response received from ${providerName} API` },
         { status: 500 }
       );
     }
@@ -190,22 +247,22 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error processing text:", error);
     
-    // Handle specific API errors (works for both Gemini and DeepSeek)
-    if (error.status === 401 || error.message?.includes("Invalid API key") || error.message?.includes("invalid_api_key") || error.message?.includes("API_KEY_INVALID") || error.message?.includes("DeepSeek API error: 401")) {
+    // Handle specific API errors (works for Gemini, DeepSeek, and OpenAI)
+    if (error.status === 401 || error.message?.includes("Invalid API key") || error.message?.includes("invalid_api_key") || error.message?.includes("API_KEY_INVALID") || error.message?.includes("DeepSeek API error: 401") || error.message?.includes("OpenAI API error: 401")) {
       return NextResponse.json(
         { error: "Invalid API key. Please check your API key configuration." },
         { status: 401 }
       );
     }
 
-    if (error.status === 429 || error.message?.includes("rate_limit_exceeded") || error.message?.includes("quota") || error.message?.includes("RESOURCE_EXHAUSTED") || error.message?.includes("DeepSeek API error: 429")) {
+    if (error.status === 429 || error.message?.includes("rate_limit_exceeded") || error.message?.includes("quota") || error.message?.includes("RESOURCE_EXHAUSTED") || error.message?.includes("DeepSeek API error: 429") || error.message?.includes("OpenAI API error: 429")) {
       return NextResponse.json(
         { error: "API quota exceeded or rate limit reached. Please try again later." },
         { status: 429 }
       );
     }
 
-    if (error.status === 402 || error.message?.includes("insufficient_quota") || error.message?.includes("DeepSeek API error: 402")) {
+    if (error.status === 402 || error.message?.includes("insufficient_quota") || error.message?.includes("DeepSeek API error: 402") || error.message?.includes("OpenAI API error: 402")) {
       return NextResponse.json(
         { error: "Insufficient quota. Please check your account billing." },
         { status: 402 }
